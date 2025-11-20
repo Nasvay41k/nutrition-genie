@@ -22,10 +22,10 @@ const AddMealDialog = ({ open, onOpenChange, date, onAdd, editMeal }: AddMealDia
     editMeal || {
       mealType: 'breakfast',
       name: '',
-      calories: 0,
-      protein: 0,
-      carbs: 0,
-      fat: 0,
+      calories: undefined,
+      protein: undefined,
+      carbs: undefined,
+      fat: undefined,
       notes: '',
     }
   );
@@ -33,7 +33,7 @@ const AddMealDialog = ({ open, onOpenChange, date, onAdd, editMeal }: AddMealDia
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || formData.calories === 0) {
+    if (!formData.name || !formData.calories || formData.calories === 0) {
       toast({
         title: 'Missing Information',
         description: 'Please fill in meal name and calories.',
@@ -60,10 +60,10 @@ const AddMealDialog = ({ open, onOpenChange, date, onAdd, editMeal }: AddMealDia
     setFormData({
       mealType: 'breakfast',
       name: '',
-      calories: 0,
-      protein: 0,
-      carbs: 0,
-      fat: 0,
+      calories: undefined,
+      protein: undefined,
+      carbs: undefined,
+      fat: undefined,
       notes: '',
     });
 
@@ -115,8 +115,9 @@ const AddMealDialog = ({ open, onOpenChange, date, onAdd, editMeal }: AddMealDia
               <Input
                 id="calories"
                 type="number"
-                value={formData.calories}
-                onChange={(e) => setFormData({ ...formData, calories: Number(e.target.value) })}
+                value={formData.calories ?? ''}
+                onChange={(e) => setFormData({ ...formData, calories: e.target.value ? Number(e.target.value) : undefined })}
+                placeholder="0"
               />
             </div>
             <div>
@@ -124,8 +125,9 @@ const AddMealDialog = ({ open, onOpenChange, date, onAdd, editMeal }: AddMealDia
               <Input
                 id="protein"
                 type="number"
-                value={formData.protein}
-                onChange={(e) => setFormData({ ...formData, protein: Number(e.target.value) })}
+                value={formData.protein ?? ''}
+                onChange={(e) => setFormData({ ...formData, protein: e.target.value ? Number(e.target.value) : undefined })}
+                placeholder="0"
               />
             </div>
           </div>
@@ -136,8 +138,9 @@ const AddMealDialog = ({ open, onOpenChange, date, onAdd, editMeal }: AddMealDia
               <Input
                 id="carbs"
                 type="number"
-                value={formData.carbs}
-                onChange={(e) => setFormData({ ...formData, carbs: Number(e.target.value) })}
+                value={formData.carbs ?? ''}
+                onChange={(e) => setFormData({ ...formData, carbs: e.target.value ? Number(e.target.value) : undefined })}
+                placeholder="0"
               />
             </div>
             <div>
@@ -145,8 +148,9 @@ const AddMealDialog = ({ open, onOpenChange, date, onAdd, editMeal }: AddMealDia
               <Input
                 id="fat"
                 type="number"
-                value={formData.fat}
-                onChange={(e) => setFormData({ ...formData, fat: Number(e.target.value) })}
+                value={formData.fat ?? ''}
+                onChange={(e) => setFormData({ ...formData, fat: e.target.value ? Number(e.target.value) : undefined })}
+                placeholder="0"
               />
             </div>
           </div>

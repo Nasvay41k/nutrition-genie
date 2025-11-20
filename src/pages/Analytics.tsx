@@ -1,36 +1,31 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { storage } from '@/lib/storage';
-import { getWeeklyAnalytics } from '@/lib/calculations';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { getAnalyticsByPeriod } from '@/lib/calculations';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TrendingUp, TrendingDown, Target } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const Analytics = () => {
   const navigate = useNavigate();
-  const [analytics, setAnalytics] = useState(getWeeklyAnalytics([], null));
+  const [period, setPeriod] = useState<'7days' | '1month' | '6months' | '1year'>('7days');
+  const [analytics, setAnalytics] = useState(getAnalyticsByPeriod([], null, '7days'));
   const userProfile = storage.getUserProfile();
 
   useEffect(() => {
     const meals = storage.getMeals();
-    setAnalytics(getWeeklyAnalytics(meals, userProfile));
-  }, [userProfile]);
+    setAnalytics(getAnalyticsByPeriod(meals, userProfile, period));
+  }, [userProfile, period]);
 
-  const chartData = analytics.dailyStats.map(day => ({
-    date: format(parseISO(day.date), 'MMM d'),
-    calories: day.totalCalories,
-    protein: day.totalProtein,
-    carbs: day.totalCarbs,
-    fat: day.totalFat,
-  }));
-
-  const macroData = [
-    { name: 'Protein', value: analytics.averageProtein, color: 'hsl(142 71% 45%)' },
-    { name: 'Carbs', value: analytics.averageCarbs, color: 'hsl(32 95% 58%)' },
-    { name: 'Fat', value: analytics.averageFat, color: 'hsl(210 17% 60%)' },
-  ];
+  const chartData = analytics.dailyStats
+    .filter(day => day.totalCalories > 0)
+    .map(day => ({
+      date: format(parseISO(day.date), period === '7days' || period === '1month' ? 'MMM d' : 'MMM yyyy'),
+      calories: day.totalCalories,
+    }));
 
   return (
     <div className="min-h-screen bg-background py-8">
@@ -122,62 +117,51 @@ const Analytics = () => {
           </Card>
         </div>
 
-        {/* Charts */}
-        <div className="grid lg:grid-cols-2 gap-6 mb-8">
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle>Daily Calorie Intake</CardTitle>
-              <CardDescription>Your calorie consumption over the past week</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="date" stroke="hsl(var(--foreground))" />
-                  <YAxis stroke="hsl(var(--foreground))" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '0.5rem',
-                    }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="calories"
-                    stroke="hsl(142 71% 45%)"
-                    strokeWidth={3}
-                    dot={{ fill: 'hsl(142 71% 45%)', r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle>Macronutrient Breakdown</CardTitle>
-              <CardDescription>Average daily macros in grams</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={macroData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" stroke="hsl(var(--foreground))" />
-                  <YAxis stroke="hsl(var(--foreground))" />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '0.5rem',
-                    }}
-                  />
-                  <Bar dataKey="value" fill="hsl(142 71% 45%)" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Daily Calorie Intake Chart */}
+        <Card className="shadow-lg mb-8">
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Daily Calorie Intake</CardTitle>
+                <CardDescription>Track your calorie consumption over time</CardDescription>
+              </div>
+              <Select value={period} onValueChange={(value: any) => setPeriod(value)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7days">Last 7 Days</SelectItem>
+                  <SelectItem value="1month">Last Month</SelectItem>
+                  <SelectItem value="6months">Last 6 Months</SelectItem>
+                  <SelectItem value="1year">Last Year</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="date" stroke="hsl(var(--foreground))" />
+                <YAxis stroke="hsl(var(--foreground))" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '0.5rem',
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="calories"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={3}
+                  dot={{ fill: 'hsl(var(--primary))', r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
         {/* Detailed Daily Stats */}
         <Card className="shadow-lg">

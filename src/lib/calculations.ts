@@ -1,5 +1,5 @@
 import { UserProfile, MealEntry, DailyStats, WeeklyAnalytics, Recommendation } from '@/types/nutrition';
-import { format, subDays } from 'date-fns';
+import { format, subDays, subMonths, subYears } from 'date-fns';
 
 export const calculateTargets = (profile: UserProfile): { calories: number; protein: number; carbs: number; fat: number } => {
   // Basic BMR calculation (Mifflin-St Jeor Equation)
@@ -34,16 +34,36 @@ export const getDailyStats = (meals: MealEntry[], date: string): DailyStats => {
   };
 };
 
-export const getWeeklyAnalytics = (meals: MealEntry[], profile: UserProfile | null): WeeklyAnalytics => {
+export const getAnalyticsByPeriod = (
+  meals: MealEntry[], 
+  profile: UserProfile | null, 
+  period: '7days' | '1month' | '6months' | '1year'
+): WeeklyAnalytics => {
   const today = new Date();
-  const last7Days = Array.from({ length: 7 }, (_, i) => format(subDays(today, 6 - i), 'yyyy-MM-dd'));
+  let dates: string[] = [];
   
-  const dailyStats = last7Days.map(date => getDailyStats(meals, date));
+  switch (period) {
+    case '7days':
+      dates = Array.from({ length: 7 }, (_, i) => format(subDays(today, 6 - i), 'yyyy-MM-dd'));
+      break;
+    case '1month':
+      dates = Array.from({ length: 30 }, (_, i) => format(subDays(today, 29 - i), 'yyyy-MM-dd'));
+      break;
+    case '6months':
+      dates = Array.from({ length: 180 }, (_, i) => format(subDays(today, 179 - i), 'yyyy-MM-dd'));
+      break;
+    case '1year':
+      dates = Array.from({ length: 365 }, (_, i) => format(subDays(today, 364 - i), 'yyyy-MM-dd'));
+      break;
+  }
   
-  const averageCalories = dailyStats.reduce((sum, day) => sum + day.totalCalories, 0) / 7;
-  const averageProtein = dailyStats.reduce((sum, day) => sum + day.totalProtein, 0) / 7;
-  const averageCarbs = dailyStats.reduce((sum, day) => sum + day.totalCarbs, 0) / 7;
-  const averageFat = dailyStats.reduce((sum, day) => sum + day.totalFat, 0) / 7;
+  const dailyStats = dates.map(date => getDailyStats(meals, date));
+  const daysWithData = dailyStats.filter(day => day.totalCalories > 0).length || 1;
+  
+  const averageCalories = dailyStats.reduce((sum, day) => sum + day.totalCalories, 0) / daysWithData;
+  const averageProtein = dailyStats.reduce((sum, day) => sum + day.totalProtein, 0) / daysWithData;
+  const averageCarbs = dailyStats.reduce((sum, day) => sum + day.totalCarbs, 0) / daysWithData;
+  const averageFat = dailyStats.reduce((sum, day) => sum + day.totalFat, 0) / daysWithData;
   
   let trend: 'above' | 'below' | 'on_target' = 'on_target';
   if (profile?.targetCalories) {
@@ -59,6 +79,10 @@ export const getWeeklyAnalytics = (meals: MealEntry[], profile: UserProfile | nu
     trend,
     dailyStats,
   };
+};
+
+export const getWeeklyAnalytics = (meals: MealEntry[], profile: UserProfile | null): WeeklyAnalytics => {
+  return getAnalyticsByPeriod(meals, profile, '7days');
 };
 
 export const generateRecommendations = (
